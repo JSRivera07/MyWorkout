@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Plan de Entrenamiento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen flex flex-col">
+
+    <header class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center sticky top-0 z-10">
+        <h1 class="text-lg font-bold text-blue-400">Workout Tracker</h1>
+        <button onclick="goToHome()" class="text-sm text-gray-300 hover:text-white px-3 py-1 rounded bg-gray-700">Inicio</button>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 pb-20">
+        
+        <section id="home" class="page active space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Tu Semana</h2>
+                <p class="text-gray-400 text-sm">Selecciona un día para ver detalles o iniciar.</p>
+            </div>
+            <div id="calendar-list" class="space-y-3">
+                </div>
+        </section>
+
+        <section id="detail" class="page space-y-6">
+            <div>
+                <h2 id="detail-day-title" class="text-3xl font-bold text-blue-400 mb-1"></h2>
+                <p id="detail-workout-focus" class="text-xl text-gray-200"></p>
+            </div>
+            
+            <div class="bg-gray-800 p-5 rounded-xl shadow-lg">
+                <h3 class="font-bold mb-4 text-gray-300 uppercase text-sm tracking-wider">Lista de Ejercicios</h3>
+                <ul id="detail-exercise-list" class="space-y-3 text-gray-400">
+                    </ul>
+            </div>
+
+            <button onclick="startWorkout()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg shadow-lg transition-all transform active:scale-95">
+                🚀 INICIAR WORKOUT
+            </button>
+        </section>
+
+        <section id="training" class="page space-y-5">
+            <div class="flex justify-between items-center">
+                <span id="step-progress" class="text-sm font-bold text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full"></span>
+                <button onclick="confirmExit()" class="text-red-400 text-sm px-3 py-1">Cancelar</button>
+            </div>
+
+            <div>
+                <h2 id="train-ex-name" class="text-2xl font-bold leading-tight mb-2"></h2>
+                <div class="rounded-xl overflow-hidden bg-gray-800 shadow-lg aspect-[4/3] relative mb-3">
+                    <img id="train-ex-img" src="" alt="Ejercicio" class="w-full h-full object-contain absolute top-0 left-0">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900/50 to-transparent pointer-events-none"></div>
+                </div>
+                <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                    <p class="text-sm text-gray-300"><span class="font-bold text-blue-400">Tempo/Notas:</span> <span id="train-ex-notes" class="italic"></span></p>
+                 </div>
+            </div>
+
+            <div>
+                <div class="grid grid-cols-[0.5fr_1fr_1fr] gap-2 mb-2 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <span>Set</span>
+                    <span>Reps Objetivo</span>
+                    <span>Peso (lbs)</span>
+                </div>
+                <div id="train-sets-container" class="space-y-2">
+                    </div>
+            </div>
+
+            <button id="next-ex-btn" onclick="nextExercise()" class="w-full py-4 bg-green-600 hover:bg-green-700 rounded-xl font-bold text-lg shadow-lg transition-all transform active:scale-95 mt-4">
+                SIGUIENTE EJERCICIO →
+            </button>
+        </section>
+
+        <section id="summary" class="page text-center space-y-8 py-10">
+            <div>
+                <div class="inline-flex p-4 bg-green-500/20 rounded-full text-green-500 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h2 class="text-3xl font-bold text-white mb-2">¡Workout Terminado!</h2>
+                <p class="text-gray-400">Gran trabajo hoy. Tus datos han sido guardados.</p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl text-left shadow-lg">
+                <h3 class="font-bold mb-4 text-gray-300">Resumen de hoy:</h3>
+                <ul id="summary-list" class="space-y-2 text-sm text-gray-400"></ul>
+            </div>
+            <button onclick="goToHome()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg shadow-lg">
+                Volver al Inicio
+            </button>
+        </section>
+    </main>
+
+
+    <script>
+        // ================= DATOS DEL WORKOUT (TU RUTINA) =================
+        // NOTA IMPORTANTE PARA EL USUARIO:
+        // Debes guardar tus 5 imágenes en una carpeta llamada 'images' junto a este archivo HTML.
+        // Los nombres de los archivos deben ser EXACTAMENTE:
+        // - day1_push.png  (Imagen del Día 1)
+        // - day2_pull.png  (Imagen del Día 2)
+        // - day3_legs.png  (Imagen del Día 3)
+        // - day4_upper.png (Imagen del Día 4)
+        // - day5_lower.png (Imagen del Día 5)
+
+        const workoutSchedule = {
+            "Lunes": {
+                id: "day1", title: "Push Day", focus: "Pecho, Hombro, Tríceps",
+                exercises: [
+                    { name: "Smith Machine Incline Press", sets: 4, reps: "8-10", tempo: "3-1-1-0. Pausa 1s en pecho.", img: "images/day1_push.png" },
+                    { name: "Dumbbell Flat Press", sets: 3, reps: "10-12", tempo: "2-0-1-0. Controla la bajada.", img: "images/day1_push.png" },
+                    { name: "Cable Lateral Raises", sets: 4, reps: "12-15", tempo: "2-1-1-1. Pausa 1s arriba.", img: "images/day1_push.png" },
+                    { name: "Smith Machine Shoulder Press", sets: 3, reps: "10", tempo: "3-0-1-0. Banco a 80°.", img: "images/day1_push.png" },
+                    { name: "Cable Tricep Pushdowns", sets: 4, reps: "12-15", tempo: "2-0-1-2. Aprieta 2s abajo.", img: "images/day1_push.png" },
+                    { name: "Dumbbell Overhead Ext.", sets: 3, reps: "10-12", tempo: "3-1-1-0. Estira bien el tríceps.", img: "images/day1_push.png" }
+                ]
+            },
+            "Martes": {
+                id: "day2", title: "Pull Day", focus: "Espalda, Hombro Post, Bíceps",
+                exercises: [
+                    { name: "Lat Pulldown (Ancho)", sets: 4, reps: "10-12", tempo: "3-1-1-1. Pecho arriba.", img: "images/day2_pull.png" },
+                    { name: "Smith Machine Bent Over Row", sets: 4, reps: "8-10", tempo: "2-1-1-0. Agarre prono.", img: "images/day2_pull.png" },
+                    { name: "Seated Cable Row (Cerrado)", sets: 3, reps: "12", tempo: "2-0-1-2. Aprieta escápulas 2s.", img: "images/day2_pull.png" },
+                    { name: "Dumbbell Rear Delt Flys", sets: 4, reps: "15", tempo: "2-1-1-0. Control total.", img: "images/day2_pull.png" },
+                    { name: "Dumbbell Incline Curls", sets: 3, reps: "10-12", tempo: "3-0-1-1. Brazos extendidos al inicio.", img: "images/day2_pull.png" },
+                    { name: "Hammer Curls", sets: 3, reps: "12-15", tempo: "2-0-1-0. Codos pegados.", img: "images/day2_pull.png" }
+                ]
+            },
+            "Miércoles": null, // Descanso
+            "Jueves": {
+                id: "day3", title: "Leg Day (Quads)", focus: "Cuádriceps & Prensa",
+                exercises: [
+                    { name: "Hack Squat", sets: 4, reps: "8-10", tempo: "4-1-1-0. Baja lento y profundo.", img: "images/day3_legs.png" },
+                    { name: "Leg Press", sets: 3, reps: "12-15", tempo: "2-0-1-0. Pies bajos en plataforma.", img: "images/day3_legs.png" },
+                    { name: "Leg Extensions", sets: 4, reps: "12-15", tempo: "2-1-1-2. Pausa 2s arriba.", img: "images/day3_legs.png" },
+                    { name: "DB Bulgarian Split Squat", sets: 3, reps: "10 c/u", tempo: "2-0-1-0. Torso erguido.", img: "images/day3_legs.png" },
+                    { name: "Seated Leg Curl", sets: 3, reps: "12-15", tempo: "3-0-1-1. Controla el regreso.", img: "images/day3_legs.png" },
+                    { name: "Calf Raises (en Prensa)", sets: 4, reps: "15-20", tempo: "2-2-1-0. Pausa 2s en estiramiento.", img: "images/day3_legs.png" }
+                ]
+            },
+            "Viernes": {
+                id: "day4", title: "Upper Body", focus: "Volumen Torso Completo",
+                exercises: [
+                    { name: "Smith Machine Flat Press", sets: 4, reps: "10-12", tempo: "3-1-1-0. Conexión mente-músculo.", img: "images/day4_upper.png" },
+                    { name: "Single Arm Cable Row", sets: 3, reps: "12 c/u", tempo: "2-1-1-2. Codo a la cadera.", img: "images/day4_upper.png" },
+                    { name: "Cable Chest Flyes", sets: 3, reps: "15", tempo: "2-0-1-2. Cruza manos al final.", img: "images/day4_upper.png" },
+                    { name: "Lat Pulldown (Inverso)", sets: 3, reps: "10-12", tempo: "3-0-1-1. Para dorsales bajos.", img: "images/day4_upper.png" },
+                    { name: "Dumbbell Lateral Raises", sets: 4, reps: "15-20", tempo: "2-0-1-0. Drop set en la última.", img: "images/day4_upper.png" },
+                    { name: "Bicep/Tricep Cable Super-set", sets: 3, reps: "12-15", tempo: "2-0-1-0. Sin descanso entre ellos.", img: "images/day4_upper.png" }
+                ]
+            },
+            "Sábado": {
+                id: "day5", title: "Lower Body (Post)", focus: "Glúteo, Femoral, Espalda Baja",
+                exercises: [
+                    { name: "Smith Machine RDL", sets: 4, reps: "10-12", tempo: "3-1-1-0. Barra pegada a piernas.", img: "images/day5_lower.png" },
+                    { name: "Smith Machine Hip Thrust", sets: 4, reps: "8-10", tempo: "2-1-1-2. Pausa 2s arriba.", img: "images/day5_lower.png" },
+                    { name: "Lying Leg Curl", sets: 3, reps: "12", tempo: "3-0-1-1. Cadera pegada al banco.", img: "images/day5_lower.png" },
+                    { name: "Smith Machine Good Mornings", sets: 3, reps: "12-15", tempo: "3-1-1-0. Espalda recta.", img: "images/day5_lower.png" },
+                    { name: "Dumbbell Goblet Squat (Sumo)", sets: 3, reps: "15", tempo: "2-0-1-0. Pies anchos.", img: "images/day5_lower.png" },
+                    { name: "Calf Raises (de pie)", sets: 4, reps: "15", tempo: "2-1-1-0. Rango completo.", img: "images/day5_lower.png" }
+                ]
+            },
+            "Domingo": null // Descanso
+        };
+        // =================================================================
+
+        // Variables de Estado
+        let selectedDayData = null;
+        let currentExerciseIdx = 0;
+        let workoutSessionData = [];
+
+        // --- Funciones de Navegación ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function goToHome() {
+            selectedDayData = null;
+            currentExerciseIdx = 0;
+            workoutSessionData = [];
+            renderCalendar();
+            showPage('home');
+        }
+
+        function confirmExit() {
+            if(confirm("¿Salir del workout? Se perderán los datos no guardados de hoy.")) {
+                goToHome();
+            }
+        }
+
+        // --- Lógica del Home/Calendario ---
+        function renderCalendar() {
+            const list = document.getElementById('calendar-list');
+            list.innerHTML = '';
+            const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+            const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+            
+            days.forEach(day => {
+                const data = workoutSchedule[day];
+                const isToday = day.toLowerCase() === today.toLowerCase();
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl flex justify-between items-center cursor-pointer transition-all hover:bg-gray-700 ${isToday ? 'bg-blue-900/30 border-l-4 border-blue-500' : 'bg-gray-800'}`;
+                card.onclick = () => openDetail(day);
+                card.innerHTML = `
+                    <div>
+                        <span class="block font-bold text-lg ${isToday ? 'text-blue-400' : 'text-white'}">${day}</span>
+                        <span class="text-sm ${data ? 'text-gray-300 font-medium' : 'text-gray-500 italic'}">${data ? data.title : 'Descanso 😴'}</span>
+                    </div>
+                    ${data ? '<span class="text-gray-500 text-xl">→</span>' : ''}
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // --- Lógica de Detalle ---
+        function openDetail(day) {
+            const data = workoutSchedule[day];
+            if (!data) return alert("Hoy es día de descanso. ¡Recupérate!");
+            selectedDayData = { ...data, dayName: day };
+            
+            document.getElementById('detail-day-title').innerText = data.title;
+            document.getElementById('detail-workout-focus').innerText = data.focus;
+            
+            const list = document.getElementById('detail-exercise-list');
+            list.innerHTML = data.exercises.map((ex, i) => `
+                <li class="flex items-start">
+                    <span class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full bg-blue-900 text-blue-400 text-xs font-bold mr-3 mt-0.5">${i + 1}</span>
+                    <span>
+                        <strong class="block text-white">${ex.name}</strong>
+                        <span class="text-xs">${ex.sets} sets × ${ex.reps} reps</span>
+                    </span>
+                </li>
+            `).join('');
+            showPage('detail');
+        }
+
+        // --- Lógica del Entrenamiento ---
+        function startWorkout() {
+            currentExerciseIdx = 0;
+            workoutSessionData = [];
+            renderCurrentExercise();
+            showPage('training');
+        }
+
+        function renderCurrentExercise() {
+            const ex = selectedDayData.exercises[currentExerciseIdx];
+            const totalEx = selectedDayData.exercises.length;
+            
+            document.getElementById('step-progress').innerText = `Ejercicio ${currentExerciseIdx + 1} / ${totalEx}`;
+            document.getElementById('train-ex-name').innerText = ex.name;
+            document.getElementById('train-ex-notes').innerText = ex.tempo;
+            
+            const imgEl = document.getElementById('train-ex-img');
+            // Usamos una imagen de placeholder si falla la carga de la imagen local
+            imgEl.onerror = function() { 
+                this.src = 'https://via.placeholder.com/400x300/1f2937/4b5563?text=Imagen+No+Encontrada'; 
+                this.alt = 'Asegúrate de subir las imágenes a la carpeta correcta';
+            };
+            imgEl.src = ex.img;
+
+            const setsContainer = document.getElementById('train-sets-container');
+            setsContainer.innerHTML = '';
+            for (let i = 1; i <= ex.sets; i++) {
+                const row = document.createElement('div');
+                row.className = "grid grid-cols-[0.5fr_1fr_1fr] gap-2 items-center";
+                // Intentar recuperar dato anterior del localStorage
+                const savedWeight = localStorage.getItem(`last_weight_${ex.name}_set${i}`) || '';
+
+                row.innerHTML = `
+                    <div class="bg-gray-800 py-3 rounded-lg text-center font-bold text-gray-400">${i}</div>
+                    <input type="number" id="reps-${i}" placeholder="${ex.reps}" class="bg-gray-800 text-white text-center py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg placeholder-gray-600">
+                    <input type="number" id="weight-${i}" placeholder="lbs" value="${savedWeight}" class="bg-gray-800 text-blue-400 text-center py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg placeholder-gray-600">
+                `;
+                setsContainer.appendChild(row);
+            }
+
+            const nextBtn = document.getElementById('next-ex-btn');
+            if (currentExerciseIdx === totalEx - 1) {
+                nextBtn.innerText = "🏁 FINALIZAR Y GUARDAR WORKOUT";
+                nextBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                nextBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                nextBtn.innerText = "SIGUIENTE EJERCICIO →";
+                nextBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                nextBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+            }
+        }
+
+        function nextExercise() {
+            // 1. Recopilar datos de los inputs
+            const ex = selectedDayData.exercises[currentExerciseIdx];
+            const setsData = [];
+            const setsContainer = document.getElementById('train-sets-container');
+            const inputs = setsContainer.querySelectorAll('input[type="number"]');
+            
+            let allEmpty = true;
+            for (let i = 0; i < ex.sets; i++) {
+                const repsVal = inputs[i*2].value;
+                const weightVal = inputs[i*2 + 1].value;
+                if (repsVal || weightVal) allEmpty = false;
+                
+                setsData.push({ set: i+1, reps: repsVal || inputs[i*2].placeholder, weight: weightVal || 0 });
+                // Guardar peso en localStorage para la próxima vez
+                if (weightVal) localStorage.setItem(`last_weight_${ex.name}_set${i+1}`, weightVal);
+            }
+
+            if (allEmpty && !confirm("No has ingresado datos para este ejercicio. ¿Continuar de todas formas?")) return;
+
+            workoutSessionData.push({ name: ex.name, sets: setsData });
+
+            // 2. Navegar
+            if (currentExerciseIdx < selectedDayData.exercises.length - 1) {
+                currentExerciseIdx++;
+                renderCurrentExercise();
+                window.scrollTo(0, 0);
+            } else {
+                finishWorkout();
+            }
+        }
+
+        function finishWorkout() {
+            // Aquí se podrían guardar los datos de sesión completa en localStorage o enviar a una base de datos
+            console.log("Workout Finalizado:", workoutSessionData);
+            const date = new Date().toLocaleDateString();
+            localStorage.setItem(`workout_history_${date}`, JSON.stringify(workoutSessionData));
+            
+            renderSummary();
+            showPage('summary');
+        }
+
+        function renderSummary() {
+            const list = document.getElementById('summary-list');
+            list.innerHTML = workoutSessionData.map(ex => {
+                 const setsSummary = ex.sets.filter(s => s.weight > 0).map(s => `${s.weight}lbs x ${s.reps}`).join(', ');
+                 return `<li><strong class="text-blue-400">${ex.name}</strong>: ${setsSummary || 'Completado'}</li>`;
+            }).join('');
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCalendar();
+        });
+    </script>
+</body>
+</html>
